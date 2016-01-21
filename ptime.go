@@ -180,7 +180,7 @@ func timeAngle(latitude float64, solDec float64, angle float64) float64{
 }
 
 func main(){
-	date := time.Date(2015, time.December, 29, 12, 0, 0, 0, time.UTC)
+	date, _ := time.Parse("01/02/2006 15:04:05 -0700", "01/20/2016 20:45:00 -0500")
 	jul := julianCent(julian(date))
 	eqTime := equationOfTime(jul)
 	solDec := solarDeclination(jul)
