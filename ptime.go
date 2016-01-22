@@ -4,6 +4,7 @@ import(
 	"fmt"
 	"time"
 	"math"
+	"sort"
 )
 
 type Location struct{
@@ -20,8 +21,14 @@ type Method struct{
 type PrayerTime struct{
 	label string
 	time float64
-	method Method	
+	method Method
 }
+
+type PrayerTimes []PrayerTime
+
+func (p PrayerTimes) Len() int{ return len(p) }
+func (p PrayerTimes) Swap(i, j int){ p[i], p[j] = p[j], p[i] }
+func (p PrayerTimes) Less(i, j int) bool{return p[i].time < p[j].time}
 
 func adjJulian(jul float64, loc Location) float64{
 	jul = jul - loc.long/(24.0*15.0)
@@ -85,48 +92,32 @@ func sunPosition(jd float64) (float64, float64) {
 	RA := deg(math.Atan2(math.Cos(rad(e))* math.Sin(rad(L)), math.Cos(rad(L))))/ 15.0
 	eqt := q/15 - fixHour(RA)
 	decl := deg(math.Asin(math.Sin(rad(e))* math.Sin(rad(L))))
-
 	return eqt, decl
 }
 
-func dhuhr(loc Location, clock_offset float64) float64{
-	return 12.0 + float64(loc.tz) - loc.long/15.0 - clock_offset
+func dhuhrTime(loc Location, julT float64) float64{
+	eqt, _ := sunPosition(julT)
+	return 12.0 + float64(loc.tz) - loc.long/15.0 - eqt
 }
 
-func sunrise(lat float64, solDec float64, dhuhr float64) float64{
-	return dhuhr - timeAngle(lat, solDec, rad(0.833))
+func acot(n float64) float64{
+	return math.Atan(1/n)
 }
 
-func sunset(lat float64, solDec float64, dhuhr float64) float64{
-	return dhuhr + timeAngle(lat, solDec, rad(0.833))
+func asrTime(loc Location, julT, dhuhr, factor float64) float64{
+	_, dec := sunPosition(julT)
+	angle := -math.Atan(1/(factor + math.Tan(rad(math.Abs(loc.lat - dec)))))
+	aTime := timeAngle(loc.lat, julT, dhuhr, angle, 1)
+	fmt.Println(angle, aTime)
+	return aTime
 }
 
-func fajr(lat float64, solDec float64, dhuhr float64) float64{
-	angle := rad(15.0)
-	return dhuhr - timeAngle(lat, solDec, angle)
-}
-
-func isha(lat float64, solDec float64, dhuhr float64) float64{
-	angle := rad(15.0)
-	return dhuhr + timeAngle(lat, solDec, angle)
-}
-
-func maghrib(lat float64, solDec float64, dhuhr float64) float64{
-	angle := rad(4.0)
-	return dhuhr + timeAngle(lat, solDec, angle)
-}
-
-func asr(loc Location, jul float64, factor float64) float64{
-	eqt, dec := sunPosition(jul)
-	dhuhrT := dhuhr(loc, eqt)
-	angle := -math.Atan(1/(factor + math.Tan(loc.lat - dec)))
-	return dhuhrT + timeAngle(loc.lat, dec, angle)
-}
-
-func timeAngle(lat float64, decl float64, angle float64) float64{
+func timeAngle(lat, julT, dhuhr, angle, dir float64) float64{
+	_, decl := sunPosition(julT)
 	lat = rad(lat)
 	decl = rad(decl)
-	return 1/15.0*deg(math.Acos(-math.Sin(angle) - math.Sin(lat)*math.Sin(decl)/(math.Cos(lat) * math.Cos(decl))))
+	tmAngle := 1/15.0*deg(math.Acos((-math.Sin(angle) - math.Sin(lat)*math.Sin(decl))/(math.Cos(lat) * math.Cos(decl))))
+	return dhuhr + dir*tmAngle
 }
 
 func formatTime(angularT float64) (int, int){
@@ -135,60 +126,147 @@ func formatTime(angularT float64) (int, int){
 	return int(hour), int(minute)
 }
 
-func newPrayerTimes(method string) (*[]PrayerTime, error){
-	ptimes := []PrayerTime{
-		{"imsak", 5.0, Method{"", 0.0}},
-		{"fajr" , 5.0, Method{"", 0.0}},
-		{"sunrise", 6.0, Method{"", 0.0}},
+func initTimes(method string) (*PrayerTimes, error){
+	calcMethods := map[string][]Method{
+		"ISNA":	{
+			{"dhuhr", 0.0},
+			{"-angle", 15.0},
+			{"fajr", -10.0},
+			{"-angle", 0.833},
+			{"asr", 1.0},
+			{"angle", 0.833},
+			{"angle", 0.833},
+			{"angle", 15.0},
+		},
+		"MWL":	{
+			{"dhuhr", 0.0},
+			{"-angle", 18.0},
+			{"fajr", -10.0},
+			{"-angle", 0.833},
+			{"asr", 1.0},
+			{"angle", 0.833},
+			{"angle", 0.833},
+			{"angle", 17.0},
+		},
+		"EGAS":	{
+			{"dhuhr", 0.0},
+			{"-angle", 19.5},
+			{"fajr", -10.0},
+			{"-angle", 0.833},
+			{"asr", 1.0},
+			{"angle", 0.833},
+			{"angle", 0.833},
+			{"angle", 17.5},
+		},
+		"Makkah":	{
+			{"dhuhr", 0.0},
+			{"-angle", 18.5},
+			{"fajr", -10.0},
+			{"-angle", 0.833},
+			{"asr", 1.0},
+			{"angle", 0.833},
+			{"angle", 0.833},
+			{"maghrib", 90.0},
+		},
+		"Karachi":	{
+			{"dhuhr", 0.0},
+			{"-angle", 18.0},
+			{"fajr", -10.0},
+			{"-angle", 0.833},
+			{"asr", 1.0},
+			{"angle", 0.833},
+			{"angle", 0.833},
+			{"angle", 18.0},
+		},
+		"Tehran":	{
+			{"dhuhr", 0.0},
+			{"-angle", 17.7},
+			{"fajr", -10.0},
+			{"-angle", 0.833},
+			{"asr", 1.0},
+			{"angle", 0.833},
+			{"angle", 4.5},
+			{"angle", 14.0},
+		},
+		"Jafari":	{
+			{"dhuhr", 0.0},
+			{"-angle", 16.0},
+			{"fajr", -10.0},
+			{"-angle", 0.833},
+			{"asr", 1.0},
+			{"angle", 0.833},
+			{"angle", 4.5},
+			{"angle", 14.0},
+		},
+	}
+	
+	ptimes := PrayerTimes{
 		{"dhuhr", 12.0, Method{"", 0.0}},
+		{"fajr" , 5.0, Method{"", 0.0}},
+		{"imsak", 5.0, Method{"", 0.0}},
+		{"sunrise", 6.0, Method{"", 0.0}},
 		{"asr", 13.0, Method{"", 0.0}},
 		{"sunset", 18.0, Method{"", 0.0}},
 		{"maghrib", 18.0, Method{"", 0.0}},
 		{"isha", 18.0, Method{"", 0.0}},
 	}
 
-	if (method == "ISNA"){
-		fmt.Println("Satan");
-		
-	}else{
-		return &ptimes, fmt.Errorf("Invalid method")
+	for i := 0; i < 8; i++{
+		ptimes[i].method = calcMethods[method][i]
 	}
-	
+
 	return &ptimes, nil
 }
 
+func dispTimes(ptimes PrayerTimes){
+	sort.Sort(ptimes)
+	for i := 0; i < 8; i++ {
+		time := ptimes[i].time
+		label := ptimes[i].label
+		//fmt.Println(ptimes[i].label, time)
+		time = fixHour(time + 0.5/60.0);
+		hr, min := formatTime(time)
+		fmt.Printf("%s\t%.2d:%.2d\n", label, hr, min)
+	}
+}
+
+func calculateTimes(ptimes PrayerTimes, jul float64, loc Location){
+	pre := map[string]float64{"dhuhr": 0.0, "fajr": 0.0, "maghrib": 0.0}
+	for i := 0; i < 8; i++{
+		adjT := jul + ptimes[i].time/24.0
+		switch ptimes[i].method.name {
+		case "dhuhr":
+			pre["dhuhr"] = dhuhrTime(loc, adjT)
+			ptimes[i].time = pre["dhuhr"]
+		case "angle":
+			angle := rad(ptimes[i].method.number)
+			ptimes[i].time = timeAngle(loc.lat, adjT, pre["dhuhr"], angle, 1)
+			pre[ptimes[i].label] = ptimes[i].time
+		case "asr":
+			factor := ptimes[i].method.number
+			ptimes[i].time = asrTime(loc, adjT, pre["dhuhr"], factor)
+		case "fajr":
+			ptimes[i].time = pre["fajr"] + ptimes[i].method.number/60.0
+		case "maghrib":
+			ptimes[i].time = pre["maghrib"] + ptimes[i].method.number/60.0
+		case "-angle":
+			angle := rad(ptimes[i].method.number)
+			ptimes[i].time = timeAngle(loc.lat, adjT, pre["dhuhr"], angle, -1)
+			pre[ptimes[i].label] = ptimes[i].time
+		}
+	}
+}
+
 func main(){
-	date, _ := time.Parse("01/02/2006 15:04:05 -0700", "01/20/2016 00:00:00 -0500")
+	date, _ := time.Parse("01/02/2006 15:04:05 -0700", "01/22/2016 00:00:00 -0500")
 	_, offset := date.Zone()
+	offset /= 3600.0
 	loc := Location{40.0, -80.0, offset}
-	ptimes, _ := newPrayerTimes("ISNA")
+	timeRef, _ := initTimes("ISNA")
+	ptimes := *timeRef
 		
 	jul := adjJulian(julian(date), loc)
-	//eqTime := equationOfTime(jul)
-	//solDec := solarDeclination(jul)
-	eqTime, solDec := sunPosition(jul)
-	fmt.Println(eqTime*60.0, solDec)
-	//fmt.Println(eqTime, eqt)
-	//fmt.Println(solDec, decl)
-	
-	dhuhrT := dhuhr(loc, eqTime)
-	
-	fajrT := fajr(loc.lat, solDec, dhuhrT)
-	hr, min := formatTime(fajrT)
-	fmt.Printf("Fajr, %d:%.2d\n", hr, min)
-	
-	hr, min = formatTime(dhuhrT)
-	fmt.Printf("Dhuhr, %d:%.2d\n", hr, min)
-	
-	asrT := asr(loc, jul, 1.0)
-	hr, min = formatTime(asrT)
-	fmt.Printf("Asr, %d:%.2d\n", hr, min)
-	
-	maghribT := maghrib(loc.lat, solDec, dhuhrT)
-	hr, min = formatTime(maghribT)
-	fmt.Printf("Maghrib, %d:%.2d\n", hr, min)
 
-	ishaT := isha(loc.lat, solDec, dhuhrT)
-	hr, min = formatTime(ishaT)
-	fmt.Printf("Isha, %d:%.2d\n", hr, min)
+	calculateTimes(ptimes, jul, loc)
+	dispTimes(ptimes)
 }
