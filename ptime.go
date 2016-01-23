@@ -195,7 +195,7 @@ func initTimes(method string) (*PrayerTimes, error){
 			{"-angle", 0.833},
 			{"asr", 1.0},
 			{"angle", 0.833},
-			{"angle", 4.5},
+			{"angle", 4.0},
 			{"angle", 14.0},
 		},
 	}
@@ -257,16 +257,16 @@ func calculateTimes(ptimes PrayerTimes, jul float64, loc Location){
 	}
 }
 
-func main(){
+/*func main(){
 	date, _ := time.Parse("01/02/2006 15:04:05 -0700", "01/22/2016 00:00:00 -0500")
 	_, offset := date.Zone()
 	offset /= 3600.0
 	loc := Location{40.0, -80.0, offset}
-	timeRef, _ := initTimes("ISNA")
+	timeRef, _ := initTimes("Jafari")
 	ptimes := *timeRef
 		
 	jul := adjJulian(julian(date), loc)
 
 	calculateTimes(ptimes, jul, loc)
 	dispTimes(ptimes)
-}
+}*/
