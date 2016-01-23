@@ -1,20 +1,20 @@
 package main
 
 import(
-	"fmt"
 	"bufio"
 	"os"
 	"strings"
 	"strconv"
+	"time"
+	"errors"
 )
 
 func ripCoords(line string) (float64, float64){
 	leftParen := strings.Index(line, "(")
 	rightParen := strings.Index(line, ")")
 	comma := strings.Index(line, ",")
-	fmt.Println(line[leftParen+1:comma], line[comma+3:rightParen])
 	radLat, err := strconv.ParseFloat(line[leftParen+1:comma], 64)
-	radLong, err := strconv.ParseFloat(line[comma+3:rightParen], 64)
+	radLong, err := strconv.ParseFloat(line[comma+2:rightParen], 64)
 	if err != nil{
 		return 0.0, 0.0
 	}
@@ -23,14 +23,12 @@ func ripCoords(line string) (float64, float64){
 	return lat, long
 }
 
-func isZipcode(line string, zipcode int) bool{
-	components := []string{"[", strconv.Itoa(zipcode), "]"}
-	substring := strings.Join(components, "") 
-	//fmt.Println(substring, line)
+func isZipcode(line string, zipcode string) bool{
+	substring := "["+zipcode+"]" 
 	return strings.Contains(line, substring)
 }
 
-func getCoords(dataPath string, zipcode int) (float64, float64, error){
+func getCoords(dataPath string, zipcode string) (float64, float64, error){
 	file, err := os.Open(dataPath)
 	lat, long := 0.0, 0.0
 	if err != nil {
@@ -48,15 +46,29 @@ func getCoords(dataPath string, zipcode int) (float64, float64, error){
 			break
 		}
 		if (isZipcode(line, zipcode)){
-			fmt.Println("triggered")
 			exitF++
 		}
+	}
+
+	if (exitF == 0){
+		return lat, long, errors.New("zip does not exist")
 	}
 	
 	return lat, long, scanner.Err()
 }
 
 func main(){
-	lat, long, err := getCoords("/usr/share/weather-util/zctas", 19610)
-	fmt.Println(lat, long, err)
+	lat, long, _ := getCoords("/usr/share/weather-util/zctas", "15213")
+	//dispDate, _ := time.Parse("01/02/2006 15:04:05 -0700", "01/23/2016 00:00:00 -0500")
+	date := nowDate()
+	_, offset := date.Zone()
+	offset /= 3600.0
+	loc := Location{lat, long, offset}
+	timeRef, _ := initTimes("ISNA")
+	ptimes := *timeRef
+		
+	jul := adjJulian(julian(date), loc)
+
+	calculateTimes(ptimes, jul, loc)
+	dispTimes(ptimes)
 }

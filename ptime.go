@@ -30,6 +30,12 @@ func (p PrayerTimes) Len() int{ return len(p) }
 func (p PrayerTimes) Swap(i, j int){ p[i], p[j] = p[j], p[i] }
 func (p PrayerTimes) Less(i, j int) bool{return p[i].time < p[j].time}
 
+func nowDate() (time.Time){
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0.0, 0.0, 0.0, 0.0, now.Location())
+	return now
+}
+
 func adjJulian(jul float64, loc Location) float64{
 	jul = jul - loc.long/(24.0*15.0)
 	return jul
@@ -108,7 +114,7 @@ func asrTime(loc Location, julT, dhuhr, factor float64) float64{
 	_, dec := sunPosition(julT)
 	angle := -math.Atan(1/(factor + math.Tan(rad(math.Abs(loc.lat - dec)))))
 	aTime := timeAngle(loc.lat, julT, dhuhr, angle, 1)
-	fmt.Println(angle, aTime)
+	//fmt.Println(angle, aTime)
 	return aTime
 }
 
@@ -269,4 +275,5 @@ func calculateTimes(ptimes PrayerTimes, jul float64, loc Location){
 
 	calculateTimes(ptimes, jul, loc)
 	dispTimes(ptimes)
-}*/
+}
+*/
