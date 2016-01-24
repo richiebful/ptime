@@ -5,7 +5,6 @@ import(
 	"os"
 	"strings"
 	"strconv"
-	"time"
 	"errors"
 )
 
@@ -55,20 +54,4 @@ func getCoords(dataPath string, zipcode string) (float64, float64, error){
 	}
 	
 	return lat, long, scanner.Err()
-}
-
-func main(){
-	lat, long, _ := getCoords("/usr/share/weather-util/zctas", "15213")
-	//dispDate, _ := time.Parse("01/02/2006 15:04:05 -0700", "01/23/2016 00:00:00 -0500")
-	date := nowDate()
-	_, offset := date.Zone()
-	offset /= 3600.0
-	loc := Location{lat, long, offset}
-	timeRef, _ := initTimes("ISNA")
-	ptimes := *timeRef
-		
-	jul := adjJulian(julian(date), loc)
-
-	calculateTimes(ptimes, jul, loc)
-	dispTimes(ptimes)
 }
