@@ -1,44 +1,16 @@
-// Copyright 2014 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-// +build darwin linux windows
-
-// An app that draws a green triangle on a red background.
-//
-// Note: This demo is an early preview of Go 1.5. In order to build this
-// program as an Android APK using the gomobile tool.
-//
-// See http://godoc.org/golang.org/x/mobile/cmd/gomobile to install gomobile.
-//
-// Get the basic example and use gomobile to build or install it on your device.
-//
-//   $ go get -d golang.org/x/mobile/example/basic
-//   $ gomobile build golang.org/x/mobile/example/basic # will build an APK
-//
-//   # plug your Android device to your computer or start an Android emulator.
-//   # if you have adb installed on your machine, use gomobile install to
-//   # build and deploy the APK to an Android target.
-//   $ gomobile install golang.org/x/mobile/example/basic
-//
-// Switch to your device or emulator to start the Basic application from
-// the launcher.
-// You can also run the application on your desktop by running the command
-// below. (Note: It currently doesn't work on Windows.)
-//   $ go install golang.org/x/mobile/example/basic && basic
 package main
 
 import (
-	//"encoding/binary"
+	"encoding/binary"
 	"log"
-
+	"fmt"
 	"golang.org/x/mobile/app"
 	"golang.org/x/mobile/event/lifecycle"
 	"golang.org/x/mobile/event/paint"
 	"golang.org/x/mobile/event/size"
 	"golang.org/x/mobile/event/touch"
 	"golang.org/x/mobile/exp/app/debug"
-	//"golang.org/x/mobile/exp/f32"
+	"golang.org/x/mobile/exp/f32"
 	"golang.org/x/mobile/exp/gl/glutil"
 	"golang.org/x/mobile/gl"
         "math"
@@ -56,6 +28,8 @@ var (
 	green  float32
 	touchX float32
 	touchY float32
+
+	triangleData []byte
 )
 
 func main() {
@@ -99,6 +73,52 @@ func main() {
 	})
 }
 
+func byteList(byteOrder binary.ByteOrder, values []float32) []byte {
+	le := false
+	switch byteOrder {
+	case binary.BigEndian:
+	case binary.LittleEndian:
+		le = true
+	default:
+		panic(fmt.Sprintf("invalid byte order %v", byteOrder))
+	}
+
+	b := make([]byte, 4*len(values))
+	
+	for i, v := range values{
+		u := math.Float32bits(v)
+		if le {
+			b[4*i+0] = byte(u >> 0)
+			b[4*i+1] = byte(u >> 8)
+			b[4*i+2] = byte(u >> 16)
+			b[4*i+3] = byte(u >> 24)
+		} else {
+			b[4*i+0] = byte(u >> 24)
+			b[4*i+1] = byte(u >> 16)
+			b[4*i+2] = byte(u >> 8)
+			b[4*i+3] = byte(u >> 0)
+		}
+	}
+	return b
+}
+
+func genCircleTriangles(Xcenter, Ycenter, radius float32) []byte{
+	points := make([]float32, 192)
+	i := 1
+	points[0] = Xcenter
+	points[1] = Ycenter
+	points[2] = radius
+	for angle := float32(0.0); angle < 3.14159*2; angle += 0.1 {
+		points[3*i] = radius*f32.Cos(angle)
+		points[3*i+1] = radius*f32.Sin(angle)
+		points[3*i+2] = float32(0.0)
+		fmt.Println(angle, points[3*i], points[3*i+1], points[3*i+2])
+		i++
+	}
+	return byteList(binary.LittleEndian, points)
+}
+
+
 func onStart(glctx gl.Context) {
 	var err error
 	program, err = glutil.CreateProgram(glctx, vertexShader, fragmentShader)
@@ -107,6 +127,7 @@ func onStart(glctx gl.Context) {
 		return
 	}
 
+	triangleData = genCircleTriangles(0.0, 0.0, 0.5)
 
 	buf = glctx.CreateBuffer()
 
@@ -131,27 +152,27 @@ func onPaint(glctx gl.Context, sz size.Event) {
 
 	glctx.UseProgram(program)
 
-	glctx.Uniform4f(color, 0, 1.0, 0, 1)
+	green += 0.01
+	if green > 1 {
+		green = 0
+	}
+	glctx.Uniform4f(color, 0, green, 0, 1)
 
 	glctx.Uniform2f(offset, touchX/float32(sz.WidthPx), touchY/float32(sz.HeightPx))
 
 	glctx.BindBuffer(gl.ARRAY_BUFFER, buf)
 	glctx.EnableVertexAttribArray(position)
-
-        glctx.VertexAttrib3f(position, 0.0, 0.0, 0.0)
-        x, y := float32(0.0), float32(0.0)
-        const radius = float32(0.5)
-        for angle := 0.1; angle < 2*3.14159; angle += 0.1{
-                x, y = radius*float32(math.Cos(angle)), radius*float32(math.Sin(angle))
-                glctx.VertexAttrib3f(position, x, y, 0.0)
-        }
-        
-	//glctx.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)
-	//glctx.DrawArrays(gl.TRIANGLE_FAN, 0, vertexCount)
+	glctx.VertexAttribPointer(position, coordsPerVertex, gl.FLOAT, false, 0, 0)
+	glctx.DrawArrays(gl.TRIANGLE_FAN, 0, vertexCount)
 	glctx.DisableVertexAttribArray(position)
 
 	fps.Draw(sz)
 }
+
+const(
+	coordsPerVertex = 3
+	vertexCount = 64
+)
 
 const vertexShader = `#version 100
 uniform vec2 offset;
