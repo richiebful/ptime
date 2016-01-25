@@ -273,11 +273,5 @@ func genTimes(date time.Time, loc Location, method string) PrayerTimes{
 	return ptimes
 }
 
-func main(){
-	date, offset := nowDate()
-	lat, long, _ := getCoords("/usr/share/weather-util/zctas", "15213")
-	loc := Location{lat, long, offset}
-	method := "ISNA"
-	ptimes := genTimes(date, loc, method)
-	dispTimes(ptimes)
-}
+
+
