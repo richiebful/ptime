@@ -6,11 +6,6 @@ import(
 	"time"
 )
 
-/*type struct ArgList{
-	date, lat, long, tz, zip bool
-}*/
-
-
 func validLatitude(lat float64) bool{
 	return (lat >= -90.0) && (lat <= 90.0) 
 }
@@ -37,19 +32,15 @@ func main(){
 	zip := flag.Int("zip", -1, "Zip Code of location")
 
 	flag.Parse()
+	
 
-	//TODO, error handling
-	//argL := ArgList{0, 0, 0, 0, 0}
 	date, err := time.Parse("01/02/2006 -0700", *dateString)
 	fmt.Println(date, *zip)
 	if (err != nil){
 		fmt.Printf("Invalid date %s\n", *dateString)
 		return
 	}
-	//argL.lat = validLatitude(lat)
-	//argL.long = validLongitude(long)
-	//argL.tz = validZone(tz)
-	//argL.zip = validZip(zip)
+	
 	loc := Location{*lat, *long, *tz}
 	fmt.Println(loc.lat, loc.long, loc.tz)
 	times := genTimes(date, loc, "ISNA")
