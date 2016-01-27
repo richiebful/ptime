@@ -33,6 +33,8 @@ func main(){
 	zip := flag.Int("zip", -1, "Zip Code of location")
 
 	flag.Parse()
+
+        loc := Location{}
 	
 	latF := validLatitude(*lat)
 	longF := validLongitude(*long)
@@ -59,17 +61,24 @@ func main(){
 		fmt.Printf("Missing longitude\n")
 		return
 	}else if !zoneF {
-		fmt.Printf("Invalid time zone, %i\n", tz)
+		fmt.Printf("Invalid time zone, %d\n", tz)
 		return
 	}else if !zipF && *zip != -1 {
-		fmt.Printf("Invalid zip, %i\n", zip)
+		fmt.Printf("Invalid zip, %d\n", zip)
 		return
 	}else if latF && longF {
-		loc := Location{*lat, *long, *tz}
+		loc.lat = *lat
+                loc.long = *long
+                loc.tz = *tz
 	}else if zipF {
 		zipS := fmt.Sprintf("%d", *zip)
-		latitude, longitude, error := getCoords("/usr/share/weather-util/zctas", zipS)
-		loc := Location{latitude, longitude, *tz}
+		latitude, longitude, err := getCoords("/usr/share/weather-util/zctas", zipS)
+                if (err != nil){
+                        return
+                }
+		loc.lat = latitude
+                loc.long = longitude
+                loc.tz = *tz
 	}
 
 	times := genTimes(date, loc, "ISNA")
