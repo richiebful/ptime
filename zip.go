@@ -1,4 +1,4 @@
-package main
+package ptime
 
 import(
 	"bufio"
@@ -27,12 +27,14 @@ func isZipcode(line string, zipcode string) bool{
 	return strings.Contains(line, substring)
 }
 
-func getCoords(dataPath string, zipcode string) (float64, float64, error){
+func GetCoords(dataPath string, zipcode string) (float64, float64, error){
 	file, err := os.Open(dataPath)
 	lat, long := 0.0, 0.0
 	if err != nil {
 		return lat, long, err
 	}
+
+	
 
 	defer file.Close()
 

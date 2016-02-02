@@ -5,7 +5,15 @@ import(
 	"flag"
 	"time"
 	"math"
+	"github.com/user/ptime"
 )
+
+func nowDate() (time.Time, int){
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0.0, 0.0, 0.0, 0.0, now.Location())
+	_, offset := now.Zone()
+	return now, offset/3600
+}
 
 func validLatitude(lat float64) bool{
 	return (lat >= -90.0) && (lat <= 90.0) 
@@ -34,7 +42,7 @@ func main(){
 
 	flag.Parse()
 
-        loc := Location{}
+        loc := ptime.Location{}
 	
 	latF := validLatitude(*lat)
 	longF := validLongitude(*long)
@@ -70,20 +78,20 @@ func main(){
 		fmt.Printf("Invalid zip, %d\n", zip)
 		return
 	}else if latF && longF {
-		loc.lat = *lat
-                loc.long = *long
-                loc.tz = *tz
+		loc.Lat = *lat
+                loc.Long = *long
+                loc.Tz = *tz
 	}else if zipF {
-		latitude, longitude, err := getCoords("/usr/share/weather-util/zctas", *zip)
+		latitude, longitude, err := ptime.GetCoords("/usr/share/weather-util/zctas", *zip)
                 if (err != nil){
 			fmt.Printf("Zip code %s is not available\n", *zip)
                         return
                 }
-		loc.lat = latitude
-                loc.long = longitude
-                loc.tz = *tz
+		loc.Lat = latitude
+                loc.Long = longitude
+                loc.Tz = *tz
 	}
 
-	times := genTimes(date, loc, "ISNA")
-	dispTimes(times)
+	times := ptime.GenTimes(date, loc, "ISNA")
+	ptime.DispTimes(times)
 }

@@ -1,4 +1,4 @@
-package main
+package ptime
 
 import(
 	"fmt"
@@ -8,9 +8,9 @@ import(
 )
 
 type Location struct{
-	lat float64
-	long float64
-	tz int
+	Lat float64
+	Long float64
+	Tz int
 }
 
 type Method struct{
@@ -30,15 +30,8 @@ func (p PrayerTimes) Len() int{ return len(p) }
 func (p PrayerTimes) Swap(i, j int){ p[i], p[j] = p[j], p[i] }
 func (p PrayerTimes) Less(i, j int) bool{return p[i].time < p[j].time}
 
-func nowDate() (time.Time, int){
-	now := time.Now()
-	now = time.Date(now.Year(), now.Month(), now.Day(), 0.0, 0.0, 0.0, 0.0, now.Location())
-	_, offset := now.Zone()
-	return now, offset/3600
-}
-
 func adjJulian(jul float64, loc Location) float64{
-	jul = jul - loc.long/(24.0*15.0)
+	jul = jul - loc.Long/(24.0*15.0)
 	return jul
 }
 
@@ -60,6 +53,10 @@ func julian(dt time.Time) float64{
 	jd := math.Floor(365.25 * (year + 4716.0)) + math.Floor(30.6001 * (month + 1)) + day + b - 1524.5
 	mins := hour * 60.0 + minute + second / 60.0
 	return jd + mins/1440.0
+}
+
+func fixDate(date time.Time) time.Time{
+	return time.Date(date.Year(), date.Month(), date.Day(), 0.0, 0.0, 0.0, 0.0, date.Location())
 }
 
 func fixAngle(deg float64) float64{
@@ -104,7 +101,7 @@ func sunPosition(jd float64) (float64, float64) {
 
 func dhuhrTime(loc Location, julT float64) float64{
 	eqt, _ := sunPosition(julT)
-	return 12.0 + float64(loc.tz) - loc.long/15.0 - eqt
+	return 12.0 + float64(loc.Tz) - loc.Long/15.0 - eqt
 }
 
 func acot(n float64) float64{
@@ -113,8 +110,8 @@ func acot(n float64) float64{
 
 func asrTime(loc Location, julT, dhuhr, factor float64) float64{
 	_, dec := sunPosition(julT)
-	angle := -math.Atan(1/(factor + math.Tan(rad(math.Abs(loc.lat - dec)))))
-	aTime := timeAngle(loc.lat, julT, dhuhr, angle, 1)
+	angle := -math.Atan(1/(factor + math.Tan(rad(math.Abs(loc.Lat - dec)))))
+	aTime := timeAngle(loc.Lat, julT, dhuhr, angle, 1)
 	//fmt.Println(angle, aTime)
 	return aTime
 }
@@ -225,7 +222,7 @@ func initTimes(method string) (*PrayerTimes, error){
 	return &ptimes, nil
 }
 
-func dispTimes(ptimes PrayerTimes){
+func DispTimes(ptimes PrayerTimes){
 	sort.Sort(ptimes)
 	for i := 0; i < 8; i++ {
 		time := ptimes[i].time
@@ -247,7 +244,7 @@ func calculateTimes(ptimes PrayerTimes, jul float64, loc Location){
 			ptimes[i].time = pre["dhuhr"]
 		case "angle":
 			angle := rad(ptimes[i].method.number)
-			ptimes[i].time = timeAngle(loc.lat, adjT, pre["dhuhr"], angle, 1)
+			ptimes[i].time = timeAngle(loc.Lat, adjT, pre["dhuhr"], angle, 1)
 			pre[ptimes[i].label] = ptimes[i].time
 		case "asr":
 			factor := ptimes[i].method.number
@@ -258,13 +255,14 @@ func calculateTimes(ptimes PrayerTimes, jul float64, loc Location){
 			ptimes[i].time = pre["maghrib"] + ptimes[i].method.number/60.0
 		case "-angle":
 			angle := rad(ptimes[i].method.number)
-			ptimes[i].time = timeAngle(loc.lat, adjT, pre["dhuhr"], angle, -1)
+			ptimes[i].time = timeAngle(loc.Lat, adjT, pre["dhuhr"], angle, -1)
 			pre[ptimes[i].label] = ptimes[i].time
 		}
 	}
 }
 
-func genTimes(date time.Time, loc Location, method string) PrayerTimes{
+func GenTimes(date time.Time, loc Location, method string) PrayerTimes{
+	date = fixDate(date)
 	timeRef, _ := initTimes(method)
 	ptimes := *timeRef
 
