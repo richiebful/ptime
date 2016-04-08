@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" src="www/css/stylesheet.css">
+  <script>
+    var c = document.getElementById("earthViz");
+    var ctx = c.getContext("2d");
+    var img = new Image();   // Create new img element
+    img.addEventListener("load", function() {
+      ctx.drawImage(img, 0, 0);
+    }, false);
+    img.src = '../img/earthViz.png'; // Set source path
+  </script>
+</head>
+
+<body>
+<canvas id="earthViz" width="1000" height="500" style="border:5px solid #000000;">
+
+</canvas>
+</body>
+
+</html>

@@ -91,7 +91,7 @@ func main(){
                 loc.Long = longitude
                 loc.Tz = *tz
 	}
-
+	fmt.Println(date, loc)
 	times := ptime.GenTimes(date, loc, "ISNA")
 	ptime.DispTimes(times)
 }

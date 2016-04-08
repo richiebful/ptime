@@ -1,0 +1,31 @@
+#latlongform{
+    position: absolute;
+    top: 495px;
+    left: 300px;
+    z-index: 1;
+}
+
+.coordLabel{
+    color: #b14432;
+    font-weight: bold;
+    font-family: sans;
+    font-size: 1em;
+    text-align: right;
+}
+
+.eitherLabel{
+    color: #b14432;
+    font-size: 2em;
+    font-family: sans;
+    padding: 0 30px 0 30px;
+}
+
+input{
+    font-size: 1em;
+    background-color: #ff6347;
+    border-bottom-style: solid;
+    border-width: 0 0 2px 0;
+    border-color: #b14432;
+    color: #b14432;
+    width: 150px;
+}

@@ -19,8 +19,8 @@ type Method struct{
 }
 
 type PrayerTime struct{
-	label string
-	time float64
+	Label string
+	Time float64
 	method Method
 }
 
@@ -28,7 +28,7 @@ type PrayerTimes []PrayerTime
 
 func (p PrayerTimes) Len() int{ return len(p) }
 func (p PrayerTimes) Swap(i, j int){ p[i], p[j] = p[j], p[i] }
-func (p PrayerTimes) Less(i, j int) bool{return p[i].time < p[j].time}
+func (p PrayerTimes) Less(i, j int) bool{return p[i].Time < p[j].Time}
 
 func adjJulian(jul float64, loc Location) float64{
 	jul = jul - loc.Long/(24.0*15.0)
@@ -225,8 +225,8 @@ func initTimes(method string) (*PrayerTimes, error){
 func DispTimes(ptimes PrayerTimes){
 	sort.Sort(ptimes)
 	for i := 0; i < 8; i++ {
-		time := ptimes[i].time
-		label := ptimes[i].label
+		time := ptimes[i].Time
+		label := ptimes[i].Label
 		//fmt.Println(ptimes[i].label, time)
 		time = fixHour(time + 0.5/60.0);
 		hr, min := formatTime(time)
@@ -237,26 +237,26 @@ func DispTimes(ptimes PrayerTimes){
 func calculateTimes(ptimes PrayerTimes, jul float64, loc Location){
 	pre := map[string]float64{"dhuhr": 0.0, "fajr": 0.0, "maghrib": 0.0}
 	for i := 0; i < 8; i++{
-		adjT := jul + ptimes[i].time/24.0
+		adjT := jul + ptimes[i].Time/24.0
 		switch ptimes[i].method.name {
 		case "dhuhr":
 			pre["dhuhr"] = dhuhrTime(loc, adjT)
-			ptimes[i].time = pre["dhuhr"]
+			ptimes[i].Time = pre["dhuhr"]
 		case "angle":
 			angle := rad(ptimes[i].method.number)
-			ptimes[i].time = timeAngle(loc.Lat, adjT, pre["dhuhr"], angle, 1)
-			pre[ptimes[i].label] = ptimes[i].time
+			ptimes[i].Time = timeAngle(loc.Lat, adjT, pre["dhuhr"], angle, 1)
+			pre[ptimes[i].Label] = ptimes[i].Time
 		case "asr":
 			factor := ptimes[i].method.number
-			ptimes[i].time = asrTime(loc, adjT, pre["dhuhr"], factor)
+			ptimes[i].Time = asrTime(loc, adjT, pre["dhuhr"], factor)
 		case "fajr":
-			ptimes[i].time = pre["fajr"] + ptimes[i].method.number/60.0
+			ptimes[i].Time = pre["fajr"] + ptimes[i].method.number/60.0
 		case "maghrib":
-			ptimes[i].time = pre["maghrib"] + ptimes[i].method.number/60.0
+			ptimes[i].Time = pre["maghrib"] + ptimes[i].method.number/60.0
 		case "-angle":
 			angle := rad(ptimes[i].method.number)
-			ptimes[i].time = timeAngle(loc.Lat, adjT, pre["dhuhr"], angle, -1)
-			pre[ptimes[i].label] = ptimes[i].time
+			ptimes[i].Time = timeAngle(loc.Lat, adjT, pre["dhuhr"], angle, -1)
+			pre[ptimes[i].Label] = ptimes[i].Time
 		}
 	}
 }

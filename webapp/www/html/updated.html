@@ -1,0 +1,35 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" href="/www/css/main.css">
+  <script src="/www/js/updated.js"></script>
+</head>
+
+<body>
+  <center>
+    <canvas id="earthViz" width="1000" height="550" style="border:5px solid #000000;"></canvas>
+    <div id="latlongform">
+      <form action="/" method="post">
+	<table>
+	  <tr>
+	    <td class="coordLabel">Latitude:</td>
+	    <td><input type="text" name="Latitude" id="latitude-input"></td>
+	    <td class="eitherLabel" rowspan="2">OR</td>
+	    <td rowspan="2" class="coordLabel">Zipcode:</td>
+	    <td rowspan="2"><input type="text" name="Zipcode" id="zipcode"></td>
+	  </tr>
+	  <tr>
+	    <td class="coordLabel">Longitude:</td>
+	    <td><input type="text" name="Longitude" id="longitude-input"></td>
+	  </tr>
+	</table>
+	<input type="text" name="Date" id="date-input" style="visibility: hidden;">
+	<input type="text" name="Zone" id="zone-input" style="visibility: hidden;">
+	<input type="submit" style="visibility: hidden;">
+      </form>
+    </div>
+  </center>
+</body>
+
+</html>
