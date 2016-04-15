@@ -1,19 +1,23 @@
+
 package main
 
 import (
 	"fmt"
-	//"encoding/json"
 	"log"
 	"net/http"
-	//"io/ioutil"
 	"html/template"
 	"strconv"
 	"time"
 	"github.com/user/ptime"
+	"encoding/json"
 )
 
 type LocationForm struct {
 	Latitude, Zipcode, Longitude string
+}
+
+type OutputData struct{
+	fajr, dhuhr, asr, maghrib, isha string
 }
 
 func initPage(rw http.ResponseWriter, req *http.Request){
@@ -27,28 +31,28 @@ func initPage(rw http.ResponseWriter, req *http.Request){
 	}
 }
 
-func mapifyTimes(times ptime.PrayerTimes) map[string]float64 {
+func mapifyTimes(times ptime.PrayerTimes) map[string]string {
 	log.Println(times)
-	result := make(map[string]float64, len(times))
-	for _, t := range times{
-		log.Println(t.Label, t.Time)
-		result[t.Label] = t.Time
+	result := make(map[string]string, len(times))
+	for _, t := range times{		
+		time := ptime.FixHour(t.Time + 0.5/60.0);
+		hr, min := ptime.FormatTime(time)
+		output := fmt.Sprintf("%.2d:%.2d", hr, min)
+		result[t.Label] = output
 	}
-	log.Println("Success")
 	return result
 }
 
 func updatePage(rw http.ResponseWriter, req *http.Request, times ptime.PrayerTimes){
-	timeMap := mapifyTimes(times)
-	log.Println(timeMap)
-	index := template.Must(template.ParseFiles(
-			"www/html/updated.html",
-			"www/css/main.css",
-			"www/js/updated.js"))
-	err := index.Execute(rw, timeMap)
+	jsonTimes, err := json.Marshal(mapifyTimes(times))
 	if err != nil{
-		log.Println("Err: ",err)
+		panic(nil)
 	}
+	log.Println("jsonTimes:", string(jsonTimes))
+	rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(jsonTimes)
+	log.Println(rw)
 }
 
 func validZip(zip string) (int, bool){
@@ -83,7 +87,7 @@ func validZone(zone string) (int, bool){
 
 func processForm(rw http.ResponseWriter, req *http.Request){
 	req.ParseForm()
-	log.Println(req.Form)
+	log.Println("req.Form" , req.Form)
 	date, err := time.Parse("2006/1/2", req.Form["Date"][0])
 	tz, tzFlag := validZone(req.Form["Zone"][0])
 	_, zipFlag := validZip(req.Form["Zipcode"][0])
@@ -115,8 +119,6 @@ func processForm(rw http.ResponseWriter, req *http.Request){
 		loc := ptime.Location{lat, long, tz}
 		times := ptime.GenTimes(date, loc, "ISNA")
 		updatePage(rw, req, times)
-		
-		//ptime.DispTimes(times)
 		log.Println("Valid coordinates")
 		return
 	} else if !coordFlag{
@@ -139,5 +141,5 @@ func main(){
 	http.Handle("/www/js/", http.StripPrefix("/www/js/", http.FileServer(http.Dir("www/js"))))
 	http.Handle("/www/img/", http.StripPrefix("/www/img/", http.FileServer(http.Dir("www/img"))))
 	log.Println("Server running on localhost:8080")
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(":4040", nil))
 }

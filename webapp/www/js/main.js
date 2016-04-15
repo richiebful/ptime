@@ -1,6 +1,5 @@
 var ctx;
 var img;
-var times = {fajr: "", dhuhr: "", asr: "", maghrib: "", isha: "", updateFlag: false};
 
 function getLocation() {
     if (navigator.geolocation) {
@@ -16,7 +15,7 @@ function showPosition(position){
     document.getElementById("longitude-input").value = position.coords.longitude.toString().substr(0,9);
 }
 
-function drawTimes(){
+function drawTimes(times){
     ctx.fillStyle = "white";
     ctx.font = "20px serif";
     ctx.fillText(times.fajr, 50, 535);
@@ -27,16 +26,43 @@ function drawTimes(){
 }
 
 window.onload = function(){
+    var locationForm = document.getElementById('locationForm')
+    locationForm.onsubmit = sendFormData();
+
     ctx = document.getElementById("earthViz").getContext("2d");
     img = new Image();   // Create new img element
     img.onload = function(){
         ctx.drawImage(img,0,0);
-	drawTimes();
     };
     img.src = '/www/img/earthViz.png';
     var d = new Date();
-    console.log(-1 * d.getTimezoneOffset()/ 60.0);
     document.getElementById("date-input").value = d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
     document.getElementById("zone-input").value = (-1 * d.getTimezoneOffset()/60.0);
     getLocation();
-}
+};
+
+
+function sendFormData(){
+    var formData = new FormData(document.getElementById('locationForm'));
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/", true);
+    xhr.send(formData);
+    //xhr.setRequestHeader('Accept', 'application/json');
+    //xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8')
+    console.log("OPENED");
+    xhr.onreadystatechange = function(){
+	if (xhr.state == 4){
+	    console.log("Ready state changed", xhr.readyState, xhr.status);
+	    if(xhr.status == 200){
+		console.log(xhr.response);
+		drawTimes(xhr.response);
+	    }
+	    else{
+		console.log(xhr.status);
+	    }
+	    return false;
+	};
+    };
+
+    return false;
+};

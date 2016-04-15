@@ -63,7 +63,7 @@ func fixAngle(deg float64) float64{
 	return fix(deg, 360.0)
 }
 
-func fixHour(hr float64) float64{
+func FixHour(hr float64) float64{
 	return fix(hr, 24.0)
 }
 
@@ -94,7 +94,7 @@ func sunPosition(jd float64) (float64, float64) {
 	e := 23.439 - 0.00000036* D
 
 	RA := deg(math.Atan2(math.Cos(rad(e))* math.Sin(rad(L)), math.Cos(rad(L))))/ 15.0
-	eqt := q/15 - fixHour(RA)
+	eqt := q/15 - FixHour(RA)
 	decl := deg(math.Asin(math.Sin(rad(e))* math.Sin(rad(L))))
 	return eqt, decl
 }
@@ -124,7 +124,7 @@ func timeAngle(lat, julT, dhuhr, angle, dir float64) float64{
 	return dhuhr + dir*tmAngle
 }
 
-func formatTime(angularT float64) (int, int){
+func FormatTime(angularT float64) (int, int){
 	hour := math.Floor(angularT)
 	minute := math.Floor((angularT - hour) * 60)
 	return int(hour), int(minute)
@@ -228,8 +228,8 @@ func DispTimes(ptimes PrayerTimes){
 		time := ptimes[i].Time
 		label := ptimes[i].Label
 		//fmt.Println(ptimes[i].label, time)
-		time = fixHour(time + 0.5/60.0);
-		hr, min := formatTime(time)
+		time = FixHour(time + 0.5/60.0);
+		hr, min := FormatTime(time)
 		fmt.Printf("%s\t%.2d:%.2d\n", label, hr, min)
 	}
 }

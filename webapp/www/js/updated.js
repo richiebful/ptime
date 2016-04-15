@@ -1,6 +1,5 @@
 var ctx;
 var img;
-var times = {fajr: "{{index timeMap fajr}}", dhuhr: "{{index timeMap dhuhr}}", asr: "{{.asr}}", maghrib: "{{.maghrib}}", isha: "{{.isha}}", updateFlag: true};
 
 function getLocation() {
     if (navigator.geolocation) {
